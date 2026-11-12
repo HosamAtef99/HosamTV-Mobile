@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<title>Hosam TV</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- login -->
+<section id="login" class="screen">
+  <div class="login-box">
+    <div class="brand big">Hosam <b>TV</b></div>
+    <p class="muted center">دخّل بيانات اشتراك Xtream</p>
+    <label for="in-server">السيرفر</label>
+    <input id="in-server" type="url" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label for="in-user">اسم المستخدم</label>
+    <input id="in-user" type="text" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <label for="in-pass">كلمة السر</label>
+    <input id="in-pass" type="text" dir="ltr" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button id="btn-login" class="btn primary wide">دخول</button>
+    <p id="login-msg" class="msg"></p>
+  </div>
+</section>
+
+<!-- main tabs -->
+<section id="main" class="screen">
+  <div id="pages">
+    <div class="page" id="pg-home"></div>
+    <div class="page" id="pg-movies"></div>
+    <div class="page" id="pg-series"></div>
+    <div class="page" id="pg-live"></div>
+    <div class="page" id="pg-search"></div>
+  </div>
+  <nav id="tabbar"></nav>
+</section>
+
+<!-- overlays -->
+<section id="details" class="overlay">
+  <div class="d-scroll" id="d-scroll">
+    <div class="d-hero"><img id="d-bg" alt=""><div class="d-shade"></div>
+      <button class="icon-btn back" data-back aria-label="رجوع">‹</button>
+    </div>
+    <div class="d-body">
+      <h1 id="d-title"></h1>
+      <div id="d-meta" class="muted"></div>
+      <div id="d-btns" class="d-btns"></div>
+      <p id="d-plot"></p>
+      <div id="d-extra"></div>
+    </div>
+  </div>
+</section>
+
+<section id="gridv" class="overlay">
+  <header class="bar">
+    <button class="icon-btn" data-back aria-label="رجوع">‹</button>
+    <div class="bar-t"><div id="gv-title"></div><div id="gv-count" class="muted small"></div></div>
+    <button id="gv-sort" class="chip"></button>
+  </header>
+  <div class="gv-search"><input id="gv-q" type="search" placeholder="دوّر في القسم ده…" autocomplete="off"></div>
+  <div id="gv-box" class="scroll"><div id="gv-grid" class="grid"></div></div>
+</section>
+
+<section id="settings" class="overlay">
+  <header class="bar">
+    <button class="icon-btn" data-back aria-label="رجوع">‹</button>
+    <div class="bar-t"><div>الإعدادات</div></div>
+  </header>
+  <div class="scroll pad">
+    <div id="acct" class="box"></div>
+    <button id="s-clear" class="btn wide">مسح سجل المشاهدة</button>
+    <button id="s-cache" class="btn wide">مسح الصور المحفوظة</button>
+    <button id="s-logout" class="btn wide danger">تسجيل الخروج</button>
+  </div>
+</section>
+
+<!-- web player (used only outside the Android app) -->
+<section id="wplayer" class="overlay">
+  <video id="wvideo" controls playsinline></video>
+  <button class="icon-btn wp-close" data-back aria-label="رجوع">✕</button>
+</section>
+
+<!-- action sheet -->
+<div id="sheet" class="sheet-wrap">
+  <div class="sheet"><div id="sheet-t"></div><div id="sheet-btns"></div></div>
+</div>
+
+<div id="toast"></div>
+<div id="loading"><i></i></div>
+
+<script src="app.js"></script>
+</body>
+</html>
