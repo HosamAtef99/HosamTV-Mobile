@@ -213,7 +213,8 @@ function makeCard(o) {
   const c = h('div', 'card ' + (o.kind || ''));
   const a = h('div', 'art');
   a.appendChild(h('div', 'ph', o.name));
-  a.appendChild(img(o.icon, (o.kind === 'wide' || o.kind === 'ep') ? 'w300' : 'w185', (o.kind === 'wide' || o.kind === 'ep') ? 480 : 240));
+  const wide = o.kind === 'wide' || o.kind === 'epc';
+  a.appendChild(img(o.icon, wide ? 'w300' : 'w185', wide ? 480 : 240));
   if (o.tag) a.appendChild(h('div', 'tag', o.tag));
   if (o.pct) { const pb = h('div', 'pb'), i = h('i'); i.style.width = o.pct + '%'; pb.appendChild(i); a.appendChild(pb); }
   c.appendChild(a);
@@ -695,7 +696,7 @@ function drawEpisodes() {
     const ep = epProg[e.id]; let pct = 0, sub = e.dur ? e.dur.replace(/^00:/, '') : '';
     if (ep && ep.d) { pct = ep.t / ep.d > 0.93 ? 100 : Math.round(ep.t / ep.d * 100); if (pct === 100) sub = 'اتشافت ✓'; }
     const r = h('div', 'ep' + (p && String(p.epId) === String(e.id) ? ' now' : ''));
-    const c = makeCard({ kind: 'ep', name: '', icon: e.img || ctx.bd || ctx.icon, pct }); c.removeChild(c.lastChild); r.appendChild(c);
+    const c = makeCard({ kind: 'epc', name: '', icon: e.img || ctx.bd || ctx.icon, pct }); c.removeChild(c.lastChild); r.appendChild(c);
     const t = h('div', 'ep-t'); t.appendChild(h('b', '', e.num + '. ' + (e.title || 'الحلقة ' + e.num))); t.appendChild(h('span', '', sub)); r.appendChild(t);
     r.onclick = () => { const q = epProg[e.id]; playEpisode(ctx, i, (q && q.d && q.t / q.d < 0.93) ? q.t : 0); };
     list.appendChild(r);

@@ -102,7 +102,7 @@ input:focus { box-shadow: 0 0 0 2px rgba(255,255,255,.6); }
 .card { flex: none; width: 112px; position: relative; }
 .card .art { position: relative; overflow: hidden; border-radius: 10px; background: var(--raise); aspect-ratio: 2 / 3; }
 .card.wide { width: 240px; }
-.card.wide .art, .card.ep .art { aspect-ratio: 16 / 9; }
+.card.wide .art, .card.epc .art { aspect-ratio: 16 / 9; }
 .card .art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .card .ph { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 8px; text-align: center; font-size: 12px; color: var(--mut); background: linear-gradient(160deg, #2a2a30, #151518); }
 .card .tag { position: absolute; top: 6px; right: 6px; background: rgba(0,0,0,.6); font-size: 10px; font-weight: 500; padding: 0 5px; border-radius: 4px; direction: ltr; }
@@ -144,7 +144,7 @@ input:focus { box-shadow: 0 0 0 2px rgba(255,255,255,.6); }
 #d-plot { color: rgba(245,245,247,.82); margin: 0 0 12px; font-size: 14px; line-height: 1.6; }
 .chips { display: flex; gap: 8px; overflow-x: auto; margin: 8px calc(-1 * var(--side)) 10px; padding: 0 var(--side); }
 .ep-list .ep { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
-.ep .card { width: 136px; }
+.ep .card.epc { width: 136px; }
 .ep .ep-t { flex: 1; min-width: 0; }
 .ep .ep-t b { display: block; font-weight: 500; font-size: 14px; }
 .ep .ep-t span { color: var(--dim); font-size: 12px; }
