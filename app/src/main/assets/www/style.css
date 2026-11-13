@@ -168,7 +168,8 @@ input:focus { box-shadow: 0 0 0 2px rgba(255,255,255,.6); }
 
 /* search */
 .search-top { padding: calc(var(--st) + 14px) var(--side) 4px; }
-.search-top h1 { margin: 0 0 10px; font-size: 28px; }
+.search-th { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.search-th h1 { margin: 0; font-size: 28px; }
 .s-msg { padding: 8px var(--side); color: var(--dim); font-size: 13px; }
 .sec-h { padding: 6px var(--side) 0; margin: 10px 0 -4px; font-size: 18px; font-weight: 700; }
 

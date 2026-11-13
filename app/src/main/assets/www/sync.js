@@ -132,5 +132,31 @@ S.status = function () {
   var d = new Date(S.last);
   return 'المزامنة: شغالة · آخر مرة ' + (d.getHours() < 10 ? '0' : '') + d.getHours() + ':' + (d.getMinutes() < 10 ? '0' : '') + d.getMinutes();
 };
+// ---- phone as keyboard for the TV ----
+S.remoteSend = function (txt, act) {
+  if (!S.acct) return Promise.reject(new Error('no account'));
+  return rpc('tv_remote_send', { p_acct: S.acct, p_txt: txt || '', p_act: act || 'type' });
+};
+// TV side: poll every 1.5 s while the app is on screen; cb({txt, act}) for each new message
+S.listen = function (cb, isPaused) {
+  if (S._listening) return;
+  S._listening = true;
+  var since = null, busy = false;
+  function tick() {
+    if (!S.acct || busy || document.hidden || (isPaused && isPaused())) return;
+    busy = true;
+    rpc('tv_remote_poll', { p_acct: S.acct, p_since: since === null ? 0 : since }).then(function (rows) {
+      busy = false;
+      var r = Array.isArray(rows) ? rows[0] : null;
+      if (!r) { if (since === null) since = 0; return; }
+      var first = since === null;
+      since = r.ts;
+      if (first && r.age_ms > 8000) return;   // old message from before the app opened
+      cb(r);
+    }, function () { busy = false; });
+  }
+  setInterval(tick, 1500);
+  tick();
+};
 S._sha = sha256;
 })();

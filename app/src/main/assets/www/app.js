@@ -532,9 +532,27 @@ function buildLive(el) {
 
 // ---- search (index saved on the phone) ----
 function buildSearch(el) {
-  const top = h('div', 'search-top'); top.appendChild(h('h1', '', 'بحث'));
+  const top = h('div', 'search-top');
+  const th = h('div', 'search-th'); th.appendChild(h('h1', '', 'بحث'));
+  const tvBtn = h('button', 'chip', '📺 اكتب على التليفزيون'); th.appendChild(tvBtn); top.appendChild(th);
   const input = h('input'); input.type = 'search'; input.placeholder = 'أفلام ومسلسلات…'; input.id = 'q';
   top.appendChild(input); el.appendChild(top);
+  // remote-keyboard mode: what you type shows up in the TV's search
+  let remote = false, rT = null;
+  const sendTV = act => {
+    if (!window.HSync || !window.HSync.acct) return toast('المزامنة مش شغالة');
+    window.HSync.remoteSend(input.value.trim(), act).then(() => { msg.textContent = act === 'go' ? 'اتبعت ✓ — النتايج على التليفزيون' : '📺 بيتكتب على التليفزيون: ' + (input.value.trim() || '…'); })
+      .catch(() => { msg.textContent = 'مقدرتش أوصل للتليفزيون، اتأكد إن النت شغال'; });
+  };
+  tvBtn.onclick = () => {
+    remote = !remote;
+    tvBtn.classList.toggle('sel', remote);
+    clear(res); lastQ = '';
+    input.placeholder = remote ? 'اكتب هنا… هيظهر على التليفزيون' : 'أفلام ومسلسلات…';
+    msg.textContent = remote ? 'افتح Hosam TV على التليفزيون، واكتب هنا. Enter = اختار أول نتيجة' : 'اكتب اسم فيلم أو مسلسل';
+    if (remote) sendTV('type');
+    input.focus();
+  };
   const msg = h('div', 's-msg', 'اكتب اسم فيلم أو مسلسل بالعربي أو الإنجليزي'); el.appendChild(msg);
   const res = h('div'); el.appendChild(res);
   let index = null, idxN = null, building = null, qT = null, lastQ = '';
@@ -585,8 +603,15 @@ function buildSearch(el) {
       });
     }).catch(() => {});
   }
-  input.addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(run, 350); });
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') { input.blur(); run(); } });
+  input.addEventListener('input', () => {
+    if (remote) { clearTimeout(rT); rT = setTimeout(() => sendTV('type'), 250); return; }
+    clearTimeout(qT); qT = setTimeout(run, 350);
+  });
+  input.addEventListener('keydown', e => {
+    if (e.key !== 'Enter') return;
+    if (remote) { clearTimeout(rT); sendTV('go'); return; }
+    input.blur(); run();
+  });
   return { refresh() {}, enter() { build().catch(() => {}); } };
 }
 
