@@ -164,6 +164,7 @@ function toggleFav(t, it) {
   if (favs[t][it.id]) { delete favs[t][it.id]; toast('اتشال من المفضلة'); }
   else { favs[t][it.id] = { t: it.t, id: it.id, name: it.name, icon: it.icon, ext: it.ext, rating: it.rating, bd: it.bd, num: it.num }; toast('اتضاف للمفضلة'); }
   store.set('fav', favs);
+  setTimeout(syncNow, 300);
 }
 const favList = t => Object.keys(favs[t]).map(k => favs[t][k]);
 const contList = type => Object.keys(prog).map(k => prog[k]).filter(p => p.type === type).sort((a, b) => b.ts - a.ts).slice(0, 20);
@@ -376,7 +377,19 @@ const ICONS = {
 };
 const TABS = [['home', 'الرئيسية'], ['movies', 'أفلام'], ['series', 'مسلسلات'], ['live', 'لايف'], ['search', 'بحث']];
 const pages = {}; let curTab = null, built = false;
+let syncOn = false;
+function startSync() {
+  if (syncOn || !window.HSync || !cfg) return;
+  syncOn = true;
+  window.HSync.start({
+    get: () => ({ prog, ep: epProg, fav: favs }),
+    set: st => { prog = st.prog; epProg = st.ep; favs = st.fav; store.set('prog', prog); store.set('ep', epProg); store.set('fav', favs); },
+    changed: () => { refreshTabs(); refreshDetails(); }
+  }, cfg.server + '|' + cfg.user + '|' + cfg.pass);
+}
+const syncNow = () => { if (window.HSync && syncOn) window.HSync.now(); };
 function startMain() {
+  startSync();
   on('main', true);
   if (!built) {
     built = true;
@@ -776,6 +789,7 @@ window.onPlayerResult = function (r) {
   if ((r.ended || r.next) && o.kind === 'episode' && o.ctx.eps[o.idx + 1]) { toast('الحلقة التالية'); playEpisode(o.ctx, o.idx + 1, 0); return; }
   if (r.error) toast('تعذر التشغيل: ' + r.error);
   playing = null;
+  setTimeout(syncNow, 300);
   if (vis('wplayer')) { stack.splice(stack.indexOf('wplayer'), 1); on('wplayer', false); }
   refreshDetails(); refreshTabs();
 };
@@ -786,7 +800,7 @@ function openSettings() {
   const u = (account && account.user_info) || {}, exp = parseInt(u.exp_date, 10);
   const d = exp ? new Date(exp * 1000) : null;
   ['المستخدم: ' + (u.username || cfg.user), 'الحالة: ' + (u.status || '—'), 'ينتهي: ' + (d ? d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) : '—'),
-    'عدد الأجهزة المسموح: ' + (u.max_connections || '—'), 'السيرفر: ' + cfg.server].forEach(l => box.appendChild(h('div', '', l)));
+    'عدد الأجهزة المسموح: ' + (u.max_connections || '—'), 'السيرفر: ' + cfg.server, window.HSync ? window.HSync.status() : ''].forEach(l => box.appendChild(h('div', '', l)));
   push('settings');
 }
 $('s-clear').onclick = () => sheet('تمسح سجل المشاهدة؟', [{ label: 'امسح', cls: 'danger', cb: () => { prog = {}; epProg = {}; store.set('prog', prog); store.set('ep', epProg); toast('اتمسح'); refreshTabs(); } }, { label: 'إلغاء' }]);
