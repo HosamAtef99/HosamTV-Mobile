@@ -2,6 +2,7 @@ name: build-apk
 on:
   push:
     branches: [main]
+    paths-ignore: ['tv-update/**', '.github/workflows/tv-update.yml']
   workflow_dispatch: {}
 permissions:
   contents: write

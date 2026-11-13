@@ -1,0 +1,42 @@
+name: tv-update
+# Publishes the LG TV app's over-the-air update (tv-update/bundle.json) to Supabase Storage: releases/tv/
+on:
+  push:
+    branches: [main]
+    paths: ['tv-update/**', '.github/workflows/tv-update.yml']
+  workflow_dispatch: {}
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      SB_URL: https://fvsueucybrxozrxglcye.supabase.co
+      SB_SECRET: ${{ secrets.SUPABASE_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Insert TMDB key
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
+        run: |
+          KEY=$(printf '%s' "$TMDB_KEY" | tr -cd 'A-Za-z0-9._-')
+          python3 -c "import sys;p='tv-update/bundle.json';s=open(p).read();open(p,'w').write(s.replace('__TMDB_KEY__',sys.argv[1]))" "$KEY"
+          echo "TMDB key: ${#KEY} chars" | tee upload.log
+      - name: Upload (bundle first, then version.json)
+        run: |
+          if [ -z "$SB_SECRET" ]; then echo "SUPABASE_SECRET_KEY not set" | tee -a upload.log; exit 1; fi
+          python3 -c "import json;json.load(open('tv-update/bundle.json'));print('bundle json ok')" | tee -a upload.log
+          for f in bundle.json version.json; do
+            curl -sS -w " $f -> %{http_code}\n" -X POST "$SB_URL/storage/v1/object/releases/tv/$f" \
+              -H "apikey: $SB_SECRET" -H "x-upsert: true" -H "Content-Type: application/json" -H "cache-control: max-age=60" \
+              --data-binary @"tv-update/$f" 2>&1 | tee -a upload.log
+          done
+          cat tv-update/version.json | tee -a upload.log
+      - name: Save the log to the "tv-builds" branch
+        if: always()
+        run: |
+          mkdir -p out && cp upload.log out/ 2>/dev/null || true
+          echo "${{ github.sha }} ${{ job.status }}" > out/STATUS
+          cd out && git init -q && git checkout -q -b tv-builds && git add -A
+          git -c user.name=ci -c user.email=ci@users.noreply.github.com commit -qm "tv update ${{ github.sha }}"
+          git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" tv-builds
