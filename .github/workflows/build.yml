@@ -8,6 +8,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      SB_URL: https://fvsueucybrxozrxglcye.supabase.co
+      SB_SECRET: ${{ secrets.SUPABASE_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -21,12 +24,31 @@ jobs:
         run: |
           set -o pipefail
           gradle assembleRelease --no-daemon --stacktrace 2>&1 | tee build.log
-      - name: Publish APK + log to the "builds" branch
+      - name: Publish the update for the in-app updater (Supabase Storage)
+        if: success()
+        run: |
+          if [ -z "$SB_SECRET" ]; then echo "SUPABASE_SECRET_KEY secret not set - skipping" | tee upload.log; exit 0; fi
+          CODE=$((100 + ${{ github.run_number }})); NAME="1.${{ github.run_number }}"
+          APK=app/build/outputs/apk/release/app-release.apk
+          {
+            curl -sS -w " -> %{http_code}\n" -X POST "$SB_URL/storage/v1/object/releases/HosamTV-$CODE.apk" \
+              -H "apikey: $SB_SECRET" -H "x-upsert: true" -H "Content-Type: application/vnd.android.package-archive" \
+              --data-binary @"$APK"
+            NOTES=$(git log -1 --pretty=%s | head -c 200 | python3 -c 'import json,sys;print(json.dumps(sys.stdin.read().strip()))')
+            printf '{"versionCode":%s,"versionName":"%s","url":"%s","notes":%s}\n' "$CODE" "$NAME" \
+              "$SB_URL/storage/v1/object/public/releases/HosamTV-$CODE.apk" "$NOTES" > latest.json
+            cat latest.json
+            curl -sS -w " -> %{http_code}\n" -X POST "$SB_URL/storage/v1/object/releases/latest.json" \
+              -H "apikey: $SB_SECRET" -H "x-upsert: true" -H "Content-Type: application/json" -H "cache-control: max-age=30" \
+              --data-binary @latest.json
+          } 2>&1 | tee upload.log
+      - name: Publish APK + logs to the "builds" branch
         if: always()
         run: |
           mkdir -p out
           cp app/build/outputs/apk/release/app-release.apk out/HosamTV.apk 2>/dev/null || true
           cp build.log out/build.log 2>/dev/null || true
+          cp upload.log out/upload.log 2>/dev/null || true
           echo "${{ github.sha }} ${{ job.status }}" > out/STATUS
           cd out
           git init -q

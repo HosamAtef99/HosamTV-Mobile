@@ -390,6 +390,7 @@ function startSync() {
 const syncNow = () => { if (window.HSync && syncOn) window.HSync.now(); };
 function startMain() {
   startSync();
+  if (IN_APP) setTimeout(() => checkUpdate(true), 2500);
   on('main', true);
   if (!built) {
     built = true;
@@ -794,6 +795,43 @@ window.onPlayerResult = function (r) {
   refreshDetails(); refreshTabs();
 };
 
+// ================= in-app updates =================
+const UPD_URL = 'https://fvsueucybrxozrxglcye.supabase.co/storage/v1/object/public/releases/latest.json';
+const upd = { latest: null, busy: false };
+const myVersion = () => IN_APP && window.Android.versionCode ? window.Android.versionCode() : 0;
+const myVersionName = () => IN_APP && window.Android.versionName ? window.Android.versionName() : 'متصفح';
+function checkUpdate(silent) {
+  return fetch(UPD_URL + '?t=' + Date.now(), { cache: 'no-store' }).then(r => r.ok ? r.json() : null).then(j => {
+    upd.latest = j && j.versionCode > myVersion() ? j : null;
+    if (upd.latest && silent) toast('فيه تحديث جديد ' + upd.latest.versionName + ' — من الإعدادات ⚙');
+    renderUpd();
+    return upd.latest;
+  }).catch(() => { if (!silent) { $('upd-msg').textContent = 'مقدرتش أوصل لسيرفر التحديثات'; } return null; });
+}
+function renderUpd() {
+  $('upd-cur').textContent = 'نسخة الأبلكيشن: ' + myVersionName();
+  const b = $('upd-btn');
+  if (upd.busy) return;
+  if (upd.latest) {
+    $('upd-msg').textContent = 'متاح تحديث ' + upd.latest.versionName + (upd.latest.notes ? ' — ' + upd.latest.notes : '');
+    b.textContent = 'نزّل وسطّب التحديث';
+  } else { b.textContent = 'دوّر على تحديث'; }
+}
+$('upd-btn').onclick = () => {
+  if (upd.busy) return;
+  if (!upd.latest) { $('upd-msg').textContent = 'بدوّر…'; checkUpdate(false).then(l => { if (!l) $('upd-msg').textContent = 'إنت على آخر نسخة ✓'; }); return; }
+  if (!IN_APP) return toast('التحديث بيشتغل من جوه الأبلكيشن بس');
+  upd.busy = true; $('upd-btn').textContent = 'جاري التنزيل… 0%';
+  window.Android.update(upd.latest.url);
+};
+window.onUpdateProgress = pct => {
+  const b = $('upd-btn');
+  if (pct === -1) { upd.busy = false; b.textContent = 'نزّل وسطّب التحديث'; $('upd-msg').textContent = 'التنزيل فشل، جرّب تاني'; return; }
+  if (pct === -2) { $('upd-msg').textContent = 'فعّل "السماح من هذا المصدر" لـ Hosam TV وارجع، والتسطيب هيكمّل لوحده'; return; }
+  b.textContent = pct >= 100 ? 'بيفتح التسطيب…' : 'جاري التنزيل… ' + pct + '%';
+  if (pct >= 100) setTimeout(() => { upd.busy = false; renderUpd(); }, 4000);
+};
+
 // ================= settings =================
 function openSettings() {
   const box = $('acct'); clear(box);
@@ -801,6 +839,7 @@ function openSettings() {
   const d = exp ? new Date(exp * 1000) : null;
   ['المستخدم: ' + (u.username || cfg.user), 'الحالة: ' + (u.status || '—'), 'ينتهي: ' + (d ? d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()) : '—'),
     'عدد الأجهزة المسموح: ' + (u.max_connections || '—'), 'السيرفر: ' + cfg.server, window.HSync ? window.HSync.status() : ''].forEach(l => box.appendChild(h('div', '', l)));
+  renderUpd();
   push('settings');
 }
 $('s-clear').onclick = () => sheet('تمسح سجل المشاهدة؟', [{ label: 'امسح', cls: 'danger', cb: () => { prog = {}; epProg = {}; store.set('prog', prog); store.set('ep', epProg); toast('اتمسح'); refreshTabs(); } }, { label: 'إلغاء' }]);

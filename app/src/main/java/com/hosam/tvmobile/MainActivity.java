@@ -14,6 +14,12 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import android.content.pm.PackageInfo;
+import android.os.Build;
+import android.provider.Settings;
+import androidx.core.content.FileProvider;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -144,7 +150,100 @@ public class MainActivity extends Activity {
     }
 
     // ---------- JS bridge ----------
+    // ---------- in-app updates ----------
+    File pendingApk;
+
+    void js(final String code) {
+        runOnUiThread(() -> web.evaluateJavascript(code, null));
+    }
+
+    void installApk(File f) {
+        if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+            // Android asks once: allow "Hosam TV" to install apps, then we continue in onResume
+            pendingApk = f;
+            js("window.onUpdateProgress && onUpdateProgress(-2)");
+            startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + getPackageName())));
+            return;
+        }
+        pendingApk = null;
+        Uri uri = FileProvider.getUriForFile(this, getPackageName() + ".files", f);
+        Intent i = new Intent(Intent.ACTION_VIEW);
+        i.setDataAndType(uri, "application/vnd.android.package-archive");
+        i.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK);
+        startActivity(i);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (pendingApk != null && (Build.VERSION.SDK_INT < 26 || getPackageManager().canRequestPackageInstalls())) {
+            final File f = pendingApk;
+            installApk(f);
+        }
+    }
+
+    void download(final String target) {
+        new Thread(() -> {
+            try {
+                File dir = new File(getCacheDir(), "updates");
+                dir.mkdirs();
+                File out = new File(dir, "HosamTV-update.apk");
+                String url = target;
+                HttpURLConnection c = null;
+                for (int hop = 0; hop < 6; hop++) {
+                    c = (HttpURLConnection) new URL(url).openConnection();
+                    c.setInstanceFollowRedirects(false);
+                    c.setConnectTimeout(15000);
+                    c.setReadTimeout(60000);
+                    int code = c.getResponseCode();
+                    if (code >= 300 && code < 400 && c.getHeaderField("Location") != null) {
+                        url = new URL(new URL(url), c.getHeaderField("Location")).toString();
+                        c.disconnect();
+                        continue;
+                    }
+                    break;
+                }
+                if (c.getResponseCode() != 200) throw new IOException("HTTP " + c.getResponseCode());
+                long total = c.getContentLengthLong(), got = 0;
+                int lastPct = -1;
+                try (InputStream in = c.getInputStream(); FileOutputStream fo = new FileOutputStream(out)) {
+                    byte[] buf = new byte[65536];
+                    int n;
+                    while ((n = in.read(buf)) > 0) {
+                        fo.write(buf, 0, n);
+                        got += n;
+                        int pct = total > 0 ? (int) (got * 100 / total) : 0;
+                        if (pct != lastPct) { lastPct = pct; js("window.onUpdateProgress && onUpdateProgress(" + pct + ")"); }
+                    }
+                }
+                js("window.onUpdateProgress && onUpdateProgress(100)");
+                runOnUiThread(() -> installApk(out));
+            } catch (Exception e) {
+                js("window.onUpdateProgress && onUpdateProgress(-1)");
+            }
+        }).start();
+    }
+
     class Bridge {
+        @JavascriptInterface
+        public int versionCode() {
+            try {
+                PackageInfo p = getPackageManager().getPackageInfo(getPackageName(), 0);
+                return (int) (Build.VERSION.SDK_INT >= 28 ? p.getLongVersionCode() : p.versionCode);
+            } catch (Exception e) { return 0; }
+        }
+
+        @JavascriptInterface
+        public String versionName() {
+            try { return getPackageManager().getPackageInfo(getPackageName(), 0).versionName; }
+            catch (Exception e) { return ""; }
+        }
+
+        @JavascriptInterface
+        public void update(final String url) {
+            download(url);
+        }
+
         @JavascriptInterface
         public void play(final String json) {
             runOnUiThread(new Runnable() {

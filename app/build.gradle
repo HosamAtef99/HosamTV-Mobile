@@ -10,8 +10,10 @@ android {
         applicationId 'com.hosam.tvmobile'
         minSdk 24
         targetSdk 34
-        versionCode 3
-        versionName '1.2'
+        // every GitHub build gets a higher number, so the in-app updater can tell what's newer
+        def runNo = (System.getenv('GITHUB_RUN_NUMBER') ?: '0').toInteger()
+        versionCode 100 + runNo
+        versionName '1.' + runNo
     }
 
     signingConfigs {
@@ -40,4 +42,5 @@ dependencies {
     implementation 'androidx.media3:media3-exoplayer:1.4.1'
     implementation 'androidx.media3:media3-exoplayer-hls:1.4.1'
     implementation 'androidx.media3:media3-ui:1.4.1'
+    implementation 'androidx.core:core:1.13.1'
 }
