@@ -24,7 +24,11 @@ jobs:
         env:
           TMDB_KEY: ${{ secrets.TMDB_KEY }}
         run: |
-          if [ -n "$TMDB_KEY" ]; then sed -i "s/__TMDB_KEY__/$TMDB_KEY/g" app/src/main/assets/www/tmdb.js; else echo "TMDB_KEY not set"; fi
+          KEY=$(printf '%s' "$TMDB_KEY" | tr -cd 'A-Za-z0-9._-')
+          if [ -n "$KEY" ]; then
+            python3 -c "import sys;p='app/src/main/assets/www/tmdb.js';s=open(p).read();open(p,'w').write(s.replace('__TMDB_KEY__',sys.argv[1]))" "$KEY"
+            echo "TMDB key inserted (${#KEY} chars)" | tee tmdb.log
+          else echo "TMDB_KEY not set" | tee tmdb.log; fi
       - name: Build APK
         run: |
           set -o pipefail
@@ -54,6 +58,7 @@ jobs:
           cp app/build/outputs/apk/release/app-release.apk out/HosamTV.apk 2>/dev/null || true
           cp build.log out/build.log 2>/dev/null || true
           cp upload.log out/upload.log 2>/dev/null || true
+          cp tmdb.log out/tmdb.log 2>/dev/null || true
           echo "${{ github.sha }} ${{ job.status }}" > out/STATUS
           cd out
           git init -q
