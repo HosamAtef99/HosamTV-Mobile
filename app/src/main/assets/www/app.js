@@ -453,15 +453,44 @@ function buildBrowse(el, type) {
   const head = h('div', 'page-head'); head.appendChild(h('h1', '', type === 'movie' ? 'أفلام' : 'مسلسلات'));
   el.appendChild(head);
   const hr = hero(el, type === 'movie' ? 'أفلام مختارة' : 'مسلسلات مختارة');
+  // source switch: the server's own categories, or TMDB rows filtered to what's on the server
+  let mode = store.get('src_' + type, 'server');
+  const srcBar = h('div', 'chips src-chips');
+  srcBar.appendChild(h('span', 'muted small', 'التصنيف:'));
+  const cServer = h('button', 'chip', 'أقسام السيرفر'), cTmdb = h('button', 'chip', 'TMDB');
+  srcBar.appendChild(cServer); srcBar.appendChild(cTmdb);
+  el.appendChild(srcBar);
+  const box = h('div'); el.appendChild(box);
+  const paint = () => { cServer.classList.toggle('sel', mode === 'server'); cTmdb.classList.toggle('sel', mode === 'tmdb'); };
+  const setMode = m => {
+    if (m === mode) return;
+    if (m === 'tmdb' && !(window.TMDB && window.TMDB.ready())) return toast('محتاج مفتاح TMDB الأول');
+    mode = m; store.set('src_' + type, mode); paint();
+    clear(box); built_ = false; api_.enter();
+  };
+  cServer.onclick = () => setMode('server'); cTmdb.onclick = () => setMode('tmdb');
+  paint();
   let built_ = false;
-  return {
+  function enterTmdb() {
+    let heroSet = false;
+    window.TMDB.rows(type).forEach(def => lazyRow(box, def.title, r =>
+      pages.search.ensure().then(rows => window.TMDB.load(def, type, rows)).then(hits => {
+        const items = hits.map(pages.search.fromRow);
+        if (!items.length) { r.hide(); return; }
+        r.sub(items.length + ' على السيرفر');
+        r.items(items, def.title);
+        if (!heroSet) { heroSet = true; hr.set(items.filter(it => it.icon).slice(0, 6)); head.style.display = 'none'; }
+      }).catch(e => { r.hide(); toast(e.message); })));
+  }
+  const api_ = {
     refresh() {},
     enter() {
       if (built_) return; built_ = true;
+      if (mode === 'tmdb' && window.TMDB && window.TMDB.ready()) return enterTmdb();
       loading(true);
       api(type === 'movie' ? 'get_vod_categories' : 'get_series_categories').then(cats => {
         loading(false);
-        arr(cats).forEach((c, ci) => lazyRow(el, c.category_name, r =>
+        arr(cats).forEach((c, ci) => lazyRow(box, c.category_name, r =>
           api(type === 'movie' ? 'get_vod_streams' : 'get_series', { category_id: c.category_id }).then(d => {
             const items = arr(d).map(type === 'movie' ? mkMovie : mkSeries);
             if (!items.length) { r.hide(); return; }
@@ -472,6 +501,7 @@ function buildBrowse(el, type) {
       }).catch(e => { loading(false); built_ = false; toast(e.message); });
     }
   };
+  return api_;
 }
 
 // ---- live ----
@@ -612,7 +642,7 @@ function buildSearch(el) {
     if (remote) { clearTimeout(rT); sendTV('go'); return; }
     input.blur(); run();
   });
-  return { refresh() {}, enter() { build().catch(() => {}); } };
+  return { refresh() {}, enter() { build().catch(() => {}); }, ensure: () => build().then(() => index), fromRow };
 }
 
 // ================= see-all grid with search =================
