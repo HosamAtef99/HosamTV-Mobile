@@ -3,7 +3,7 @@
    against the saved search index rows: [type 0=movie|1=series, id, name, icon, ext, rating, added]. */
 (function () {
 'use strict';
-var T = window.TMDB = { key: '' };
+var T = window.TMDB = { key: '__TMDB_KEY__' === '__' + 'TMDB_KEY__' ? '' : '__TMDB_KEY__' };
 var API = 'https://api.themoviedb.org/3/';
 var DAY = 24 * 3600 * 1000;
 

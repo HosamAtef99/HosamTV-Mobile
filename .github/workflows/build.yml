@@ -20,6 +20,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v3
         with:
           gradle-version: '8.7'
+      - name: Insert TMDB key (from the TMDB_KEY secret)
+        env:
+          TMDB_KEY: ${{ secrets.TMDB_KEY }}
+        run: |
+          if [ -n "$TMDB_KEY" ]; then sed -i "s/__TMDB_KEY__/$TMDB_KEY/g" app/src/main/assets/www/tmdb.js; else echo "TMDB_KEY not set"; fi
       - name: Build APK
         run: |
           set -o pipefail
