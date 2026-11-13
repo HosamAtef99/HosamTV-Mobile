@@ -1,0 +1,5 @@
+TMDB key: 32 chars
+bundle json ok
+{"Key":"releases/tv/bundle.json","Id":"d7c9fdb1-b155-4a08-989f-cdf960e27e1f","version":"4fb24851-e37d-4b68-874c-3bdae0f1a42e"} bundle.json -> 200
+{"Key":"releases/tv/version.json","Id":"9a516b15-53cf-4205-83d9-04ca08cdeb88","version":"999d940c-2aa5-4ce5-9b87-407ad760c100"} version.json -> 200
+{"build":16,"version":"1.12.4","notes":"الفيديو مبقاش بيقف على أول ثانية"}
